@@ -1,0 +1,73 @@
+---
+title: "BIOL 264 Final Presentation"
+author: "Lauren Ash"
+date: "April 19, 2016"
+output: ioslides_presentation
+---
+## *Liatris novae-angliae* (Northern Blazing Star)
+
+A rare flower endemic to New England
+
+![Flower](LiatrisPic.jpg) 
+![Distribution](LnovaeDist.tiff) 
+![Road](LnovaeRoad.jpg) 
+
+
+## *Liatris novae-angliae* Habitat
+
+- Sandplain grasslands and coastal heathlands
+- Disturbed anthropogenic habitats (roadsides) and natural habitats (fire)
+- Do not flourish in forested areas
+
+<center> ![Maine Field](LnovaeField.jpg) <center>
+
+## Hypothesis
+
+There are underlying factors that influence whether *Liatris novae-angliae* at a particular site is still extant or extirpated and historic.
+   
+**Predictions:** Values of predictor variables at sites where there are records of *Liatris novae-angliae* will significantly differ based on whether they are extant or extinct at those sites.
+
+<center> ![Close](LnovaeClose.jpg) <center>
+
+## Significance
+- Absence data are rare finds!
+- 'Historic' records are also different from being 'absent'
+<center> ![BW](LnovaeSketch.png) <center>
+
+## Getting Data 
+
+- Conservation plan obtained from the New England Wildflower Society
+- States: Massachusetts, Connecticut, Rhode Island, New York, and Maine
+- Natural Heritage Programs for coordinates (130 points so far)
+
+![NEWS](NEWS.tiff)
+
+## Getting Data (continued)
+
+- Latitude and Longitude at each site with QGIS
+- Read Element Occurrence Record summaries to determine whether extant/extirpated/historic
+- Predictors: 19 Bioclim variables
+<center> ![google map](LnovaePoint.tiff)
+
+## Visualizing the Data
+<center> ![map](PointsMap.jpeg) <center>
+
+## Future Additions
+- Add the rest of Massachusetts (possibly New Hampshire)
+- Add land use and soil layers
+- Compare historical climate layers
+- More statistical tests
+
+## Acknowledgements 
+-**Elizabeth Farnsworth**, New England Wildflower Society   
+-**Nicholas Gotelli**, UVM     
+-**The Natural Heritage Programs** in:   
+    -Massachusetts   
+    -Rhode Island   
+    -Connecticut   
+    -New York   
+    -Maine   
+<center> ![Elizabeth](efarnsworth.jpg) <center>
+
+# Questions?
+<center> ![Butterfly](LnovaeButterfly.jpg) <center>

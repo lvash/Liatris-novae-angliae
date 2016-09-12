@@ -1,0 +1,281 @@
+---
+title: "BIOL 264 Final Project"
+author: "Lauren Ash"
+date: "April 19, 2016"
+output: html_document
+---
+
+### Reading in the data 
+```{r data}
+data <- read.csv("LiatrisDataPoints.csv")
+points <- subset(data, select=c(State, Latitude, Longitude, Extant))
+str(points)
+```
+
+### Visualize data
+```{r}
+library(maptools)
+library(maps)
+library(raster)
+data(wrld_simpl)
+pres<-subset(points, Extant=="Y")
+abs<-subset(points,Extant=="N")
+NEmap<-crop(wrld_simpl, extent(-75, -67, 40, 46)) 
+plot(NEmap)
+coordinates(pres)<- ~ Longitude + Latitude
+coordinates(abs)<- ~ Longitude + Latitude
+
+points(pres,pch=20,col="red",cex=0.5)
+points(abs,pch=20,col="darkblue",cex=0.5)
+```
+
+
+### Bioclim data
+```{r bioclim}
+data <- read.csv("LiatrisDataPoints.csv")
+points <- subset(data, select=c(State, Latitude, Longitude, Extant))
+bioclim<-getData("worldclim",var='bio',res=2.5)
+names(bioclim)
+# Extract climate data at points
+climData <- extract(bioclim, points[, c("Longitude", "Latitude")]) 
+dbio1 <- cbind(points, climData[,1:19]) 
+
+```
+
+### Data prep
+```{r data prep}
+##naming columns
+colnames(dbio1)[5:23]<-c("MeanTempC","MeanDiurnalC","Isothermality","TempSeasonality","MaxTempWarmC","MinTempColdC","TempRangeC","MeanTempWet","MeanTempDry","MeanTempWarm",'MeanTempCold',"AnnualPrecipmm","PrecipWetmm","PrecipDrymm","PrecipSeasonality","PrecipWetQ","PrecipDryQ","PrecipWarmQ","PrecipColdQ")
+
+# divide temp by 10 to get correct units
+dbio1$MeanTempC<- dbio1$MeanTempC/10
+dbio1$MeanDiurnalC<-dbio1$MeanDiurnalC/10
+dbio1$TempSeasonality<-dbio1$TempSeasonality/100
+dbio1$MaxTempWarmC<- dbio1$MaxTempWarmC/10
+dbio1$MinTempColdC<- dbio1$MinTempColdC/10
+dbio1$TempRangeC<- dbio1$TempRangeC/10
+dbio1$MeanTempWet<- dbio1$MeanTempWet/10
+dbio1$MeanTempDry<- dbio1$MeanTempDry/10
+dbio1$MeanTempWarm<- dbio1$MeanTempWarm/10
+dbio1$MeanTempCold<- dbio1$MeanTempCold/10
+
+tail(dbio1)
+
+any(is.na(dbio1)) #check for NAs
+```
+
+### Convex Hull
+```{r convex hull}
+library(adehabitatHR)
+library(rgeos)
+
+P<-subset(points, points$Extant == 'Y') #71 presence points
+A<-subset(points, points$Extant == "N") #59 absence points
+xyP<-P[,2:3]
+xyA<-A[,2:3]
+coordinates(xyP)<-c("Longitude","Latitude")
+coordinates(xyA)<-c("Longitude","Latitude")
+
+polygonP<-mcp(xyP)
+polygonA<-mcp(xyA)
+plot(polygonP, col="yellow")
+plot(polygonA, add=T, col="orange")
+points(xyP, col="red")
+points(xyA, col="darkblue")
+
+gArea(polygonP) #[1] 4.943625
+gArea(polygonA) #[1] 4.861557
+
+Pvec<-vector(mode='numeric', length=1000)
+Avec<-vector(mode='numeric', length=1000)
+
+for(i in 1:2000){
+    points1<-points[,2:3]
+    random<-sample(points$Extant)
+    points2<-cbind(points1, random)
+    P<-subset(points2, points2$random == 'Y')
+    A<-subset(points2, points2$random == "N") 
+    
+    xyP<-P[,1:2]
+    xyA<-A[,1:2]
+    coordinates(xyP)<-c("Longitude","Latitude")
+    coordinates(xyA)<-c("Longitude","Latitude")
+    polygonPsim<-mcp(xyP)
+    polygonAsim<-mcp(xyA)
+    
+    Pvec[i]<-gArea(polygonPsim)
+    Avec[i]<-gArea(polygonAsim)
+}
+
+hist(Pvec, col="red")
+mean(Pvec) #observed area =  5.009269
+hist(Avec, col="darkblue")
+mean(Avec) #observed area = 4.749229
+quantile(Pvec, c(0.025,0.975))
+quantile(Avec, c(0.025,0.975))
+```
+
+
+### One-way ANOVAs
+```{r anovas}
+summary(aov(MaxTempWarmC~Extant, data=dbio1)) 
+summary(aov(MeanTempC~Extant, data=dbio1)) 
+summary(aov(MeanDiurnalC~Extant, data=dbio1)) 
+summary(aov(Isothermality~Extant, data=dbio1))
+summary(aov(TempSeasonality~Extant, data=dbio1)) 
+summary(aov(MinTempColdC~Extant, data=dbio1)) 
+summary(aov(TempRangeC~Extant, data=dbio1)) 
+summary(aov(MeanTempWet~Extant, data=dbio1)) # p < 0.05 #not anymore p = 0.076
+summary(aov(MeanTempDry~Extant, data=dbio1))
+summary(aov(MeanTempWarm~Extant, data=dbio1))
+summary(aov(MeanTempCold~Extant, data=dbio1))
+summary(aov(AnnualPrecipmm~Extant, data=dbio1)) 
+summary(aov(PrecipWetmm~Extant, data=dbio1)) # p = 0.00428
+summary(aov(PrecipDrymm~Extant, data=dbio1))
+summary(aov(PrecipSeasonality~Extant, data=dbio1))
+summary(aov(PrecipWetQ~Extant, data=dbio1)) # p < 0.01 #not anymore p = 0.0187
+summary(aov(PrecipDryQ~Extant, data=dbio1))
+summary(aov(PrecipWarmQ~Extant, data=dbio1))
+summary(aov(PrecipColdQ~Extant, data=dbio1)) # p < 0.05
+#not anymore p = 0.193
+
+
+#important: PrecipWetmm; PrecipWetQ (down from 4 important variables)
+```
+
+### Boxplots of significant variables
+```{r}
+boxplot(PrecipWetmm~Extant, dbio1, col=c("darkblue","red"), ylab="Precipitation of Wettest Month (mm)", xlab="Extant")
+# boxplot(PrecipColdQ~Extant,dbio1,col=c("darkblue","red"), ylab="Precipitation of Coldest Quarter (mm)", xlab="Extant")
+# boxplot(MeanTempWet~Extant, dbio1, col=c("darkblue","red"), ylab="Mean Temperature of Wettest Month (C)", xlab="Extant")
+boxplot(PrecipWetQ~Extant, dbio1, col=c("darkblue","red"), ylab="Precipitation of Wettest Quarter (mm)", xlab="Extant")
+
+#higher precip = higher probability of extinction
+
+wet<-cbind(dbio1$Extant, dbio1$PrecipWetmm)
+extantwet<-subset(wet, wet[,1]=="2" ) #2=yes
+median(extantwet[,2])
+mean(extantwet[,2])
+
+extinctwet<-subset(wet, wet[,1]=="1" )
+median(extinctwet[,2])
+mean(extinctwet[,2])
+#extinct has higher precip values
+```
+
+### Discriminant Analysis
+```{r}
+dbio2<-dbio1
+dbio2$Extant <- factor(dbio2$Extant, labels = c("No", "Yes"))
+library(candisc)
+dbio.mod <- lm(cbind(PrecipWetQ, MeanTempWet, PrecipColdQ, PrecipWetmm) ~ Extant, data = dbio2)
+
+dbio.cda<-candisc(dbio.mod, term='Extant')
+dbio.cda #pvalue of 0.00299
+scores<-dbio.cda$scores
+extant<-scores[scores$Extant == "Yes",]
+extinct<-scores[scores$Extant == "No",]
+
+plot(extant$Can1, pch='P',ylab="Can1 Scores", col="red",xlim=c(0,70),ylim=c(-3,2.5),main="Discrimant Function Scores")
+par(new=T)
+plot(extinct$Can1, pch='A', col="darkblue", ylab='',xlab='',xlim=c(0,70),ylim=c(-3,2.5))
+
+hist(extant$Can1, xlim=c(-4,4), col="red", xlab="Can1 Scores", main="Histogram of Can1 Scores")
+hist(extinct$Can1, add=T, col="blue")
+```
+
+### Logistic Regression
+```{r}
+Extant<-dbio2$Extant
+Ex <- ifelse(Extant=="Yes", 1, 0)
+dbio2$Ex<-Ex
+MyModel <- glm(Extant~PrecipWetmm+MeanTempC+ MeanDiurnalC+ Isothermality+ TempSeasonality+ MaxTempWarmC+ MinTempColdC+ TempRangeC+ MeanTempWet+ MeanTempDry+ MeanTempWarm+ MeanTempCold+ AnnualPrecipmm+ PrecipDrymm+ PrecipSeasonality+ PrecipWetQ+ PrecipDryQ+ PrecipWarmQ+ PrecipColdQ, family=binomial("logit"),data=dbio2)
+summary(stepAIC(MyModel, direction = "both"))
+summary(MyModel)
+
+#important in logistic regression: AnnualPrecipmm; PrecipDryQ; PrecipColdQ; MeanTempCold
+
+#important in ANOVA: PrecipWetmm; PrecipWetQ (down from 4 important variables; took out temp variables)
+
+dbio3<-dbio2
+dbio3$Ex<-Ex
+
+# SIG ANOVA VARIABLES: 
+# Precipitation of Wettest Month
+# pvalue 0.00600
+# probability of being extant decreases with higher precip values
+MyModel <- glm(Ex~PrecipWetmm, family=binomial("logit"),data=dbio3)
+summary(MyModel) #sig
+PrecipWetmm<-dbio2$PrecipWetmm
+plot(x=PrecipWetmm,y=Ex,xlab="Precipitation (mm)",ylab="P(Extant)", type='n', ylim=c(0,1))
+curve(predict(MyModel,data.frame(PrecipWetmm=x),type="resp"),add=T)
+points(x=PrecipWetmm,y=Ex,cex=2,pch=21,bg="lightblue")
+
+# Precipitation of Wettest Quarter
+# pvalue 0.0207
+PrecipWetQ<-dbio2$PrecipWetQ
+MyModel <- glm(Ex~PrecipWetQ, family=binomial("logit"),data=dbio3)
+summary(MyModel) #not sig pvalue 0.193
+plot(x=PrecipWetQ,y=Ex,xlab="Precipitation (mm)",ylab="P(Extant)", type='n', ylim=c(0,1))
+curve(predict(MyModel,data.frame(PrecipWetQ=x),type="resp"),add=T)
+points(x=PrecipWetQ,y=Ex,cex=2,pch=21,bg="lightblue")
+
+# SIG LOG REG VARIABLES:
+# Precipitation of Coldest Quarter
+# PrecipColdQ<-dbio2$PrecipColdQ
+# MyModel <- glm(Ex~PrecipColdQ, family=binomial("logit"),data=dbio3)
+# summary(MyModel) #not sig pvalue 0.193
+# plot(x=PrecipColdQ,y=Ex,xlab="Precipitation (mm)",ylab="P(Extant)", type='n', ylim=c(0,1))
+# curve(predict(MyModel,data.frame(PrecipColdQ=x),type="resp"),add=T)
+# points(x=PrecipColdQ,y=Ex,cex=2,pch=21,bg="lightblue")
+
+# Precip of Driest Quarter
+#not sig - pvalue 0.131
+# PrecipDryQ<-dbio2$PrecipDryQ
+# MyModel <- glm(Ex~PrecipDryQ, family=binomial("logit"),data=dbio3)
+# summary(MyModel) #not sig pvalue 0.193
+
+
+# Mean Temp of Coldest Month
+# MyModel <- glm(Ex~MeanTempCold, family=binomial("logit"),data=dbio3)
+# summary(MyModel) #not sig - pvalue 0.11038
+
+
+#Annual Precip mm
+# MyModel <- glm(Ex~AnnualPrecipmm, family=binomial("logit"),data=dbio3)
+# summary(MyModel) #not sig - pvalue 0.121
+
+
+# Mean Temp of the Wettest Month
+# pvalue 0.0811
+MyModel <- glm(Ex~MeanTempWet, family=binomial("logit"),data=dbio3)
+summary(MyModel) #not sig
+MeanTempWet<-dbio2$MeanTempWet
+plot(x=MeanTempWet,y=Ex,xlab="Temperature (C)",ylab="P(Extant)", type='n', ylim=c(0,1))
+curve(predict(MyModel,data.frame(MeanTempWet=x),type="resp"),add=T)
+points(x=MeanTempWet,y=Ex,cex=2,pch=21,bg="lightblue")
+
+MyModel <- glm(Ex~PrecipColdQ, family=binomial("logit"),data=dbio3)
+summary(MyModel) #not sig pvalue 0.193
+
+
+```
+
+### Classification Tree
+```{r}
+library(rpart)
+form<-as.formula(Extant~.)
+tree.2<-rpart(form, data=dbio2[,5:23],control=rpart.control(minsplit=20),method="class")
+printcp(tree.2) #print complexity parameters
+new.tree.2<-prune(tree.2,cp=0.01)
+
+# testing predictablity
+predmodel<-predict(new.tree.2,dbio2[,5:23],type="class")
+sum(ifelse(Extant==predmodel,1,0))/length(Extant) #[1] 0.7846154
+table(Extant,predmodel)
+
+library(rpart.plot)
+rpart.plot(new.tree.2, type=3, extra=2)
+#displays correct classification rate
+```
+
