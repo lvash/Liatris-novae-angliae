@@ -2,10 +2,10 @@
 # Author: Lauren Ash
 # Contact info: lvash@uvm.edu
 
-# Table of Contents
-1.[Rationale/Objectives](#id-section1)
-2.[Experimental Design](#id-section2)
-3.[Repository Layout](#id-section3)
+# Table of Contents   
+1.[Rationale/Objectives](#id-section1)   
+2.[Experimental Design](#id-section2)   
+3.[Repository Layout](#id-section3)   
 
 
 ------
